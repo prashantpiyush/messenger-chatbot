@@ -24,26 +24,27 @@ app.get('/webhook/', (req, res) => {
 })
 
 app.post('/webhook/', (req, res) => {
-	let messaging_events = req.body.entry[0].messaging;
-	for (let i = 0; i < messaging_events.length; i++) {
-		let event = messaging_events[i]
-		let sender = event.sender.id
-		if (event.message && event.message.text) {
-			let text = event.message.text
-			sendText(sender, "Text echo: " + text.substring(0, 100))
-		}
-	}
-	res.sendStatus(200);
+  const body = req.body;
+  if(body.object == 'page') {
+    body.entry[0].messaging.forEach((msgEvent) => {
+      let senderId = msgEvent.sender.id;
+      let message = msgEvent.message;
+      if(message && message.text) {
+        sendResponse(senderId, message);
+      }
+    })
+    res.sendStatus(200);
+  }
 })
 
-function sendText(sender, text) {
-	let messageData = {text: text}
+function sendResponse(senderId, message) {
+	let messageData = {text: message.text}
 	request({
 		url: "https://graph.facebook.com/v2.6/me/messages",
 		qs : {access_token: access.access_token},
 		method: "POST",
 		json: {
-			recipient: {id: sender},
+			recipient: {id: senderId},
 			message : messageData,
 		}
 	}, (error, response, body) => {
