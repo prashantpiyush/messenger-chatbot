@@ -30,15 +30,29 @@ app.post('/webhook/', (req, res) => {
       let senderId = msgEvent.sender.id;
       let message = msgEvent.message;
       if(message && message.text) {
-        sendResponse(senderId, message);
+        handleMessage(senderId, message);
       }
     })
     res.sendStatus(200);
   }
 })
 
-function sendResponse(senderId, message) {
-	let messageData = {text: message.text}
+function firstEntity(nlp, name) {
+  return nlp && nlp.entities && nlp.entities[name] && nlp.entities[name][0];
+}
+
+function handleMessage(senderId, message) {
+  const greeting = firstEntity(message.nlp, 'greetings');
+  console.log(message.nlp);
+  if (greeting && greeting.confidence > 0.8) {
+    sendResponse(senderId, 'Hi there!');
+  } else {
+    sendResponse(senderId, 'Sorry, I didn\'t get that.');
+  }
+}
+
+function sendResponse(senderId, messageText) {
+	let messageData = {text: messageText}
 	request({
 		url: "https://graph.facebook.com/v2.6/me/messages",
 		qs : {access_token: access.access_token},
