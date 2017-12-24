@@ -4,7 +4,7 @@ const request = require('request');
 
 const app = express();
 
-const access = require('./access');
+const {access_token, verify_token} = require('./access');
 
 const PORT = process.env.PORT || 8080;
 
@@ -17,7 +17,7 @@ app.get('/', (req, res) => {
 })
 
 app.get('/webhook/', (req, res) => {
-	if (req.query['hub.verify_token'] === access.verify_token) {
+	if (req.query['hub.verify_token'] === verify_token) {
 		res.send(req.query['hub.challenge']);
 	}
 	res.send("Wrong token");
@@ -43,29 +43,40 @@ function firstEntity(nlp, name) {
 
 function handleMessage(senderId, message) {
   const greeting = firstEntity(message.nlp, 'greetings');
-  console.log(message.nlp);
   if (greeting && greeting.confidence > 0.8) {
-    sendResponse(senderId, 'Hi there!');
+    sendGreetingsResponse(senderId);
   } else {
     sendResponse(senderId, 'Sorry, I didn\'t get that.');
   }
 }
 
+function sendGreetingsResponse(senderId) {
+  const url = 'https://graph.facebook.com/v2.6/'+senderId+'?fields=first_name,last_name&access_token='+access_token+'>';
+  request(url, (err, res, body) => {
+    const profile = JSON.parse(body);
+    const keys = Object.keys(profile);
+    let name = profile[keys[0]].toString() + ' ' + profile[keys[1]].toString();
+    console.log(`Name: ${name}`);
+    sendResponse(senderId, 'Hi ' + name);
+  })
+}
+
 function sendResponse(senderId, messageText) {
 	let messageData = {text: messageText}
-	request({
-		url: "https://graph.facebook.com/v2.6/me/messages",
-		qs : {access_token: access.access_token},
-		method: "POST",
+  const req = {
+		url: 'https://graph.facebook.com/v2.6/me/messages',
+		qs : {access_token: access_token},
+		method: 'POST',
 		json: {
 			recipient: {id: senderId},
 			message : messageData,
 		}
-	}, (error, response, body) => {
-		if (error) {
-			console.log("sending error: " + error.message)
-		} else if (response.body.error) {
-			console.log("response body error: " + response.body.error.message);
+	};
+	request(req, (err, res, body) => {
+		if (err) {
+			console.log('sending error: ' + err.message)
+		} else if (res.body.error) {
+			console.log('response body error: ' + res.body.error.message);
 		}
 	})
 }
