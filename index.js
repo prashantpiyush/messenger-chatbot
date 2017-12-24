@@ -8,6 +8,7 @@ const {access_token, verify_token} = require('./access');
 const {responses} = require('./messages.json');
 
 const PORT = process.env.PORT || 8080;
+const minConfidence = 0.8;
 
 app.use(express.static(__dirname));
 app.use(bodyParser.urlencoded({extended: false}));
@@ -51,11 +52,21 @@ function firstEntity(nlp, name) {
 
 function handleMessage(senderId, message) {
   const greeting = firstEntity(message.nlp, 'greetings');
-  if (greeting && greeting.confidence > 0.8) {
+  if (greeting && greeting.confidence > minConfidence) {
     sendGreetingsResponse(senderId);
-  } else {
-    sendResponse(senderId, getIntentResponse('default'));
+    return;
   }
+  const thanks = firstEntity(message.nlp, 'thanks');
+  if(thanks && thanks.confidence > minConfidence) {
+    sendResponse(senderId, getIntentResponse('thanks'));
+    return;
+  }
+  const bye = firstEntity(message.nlp, 'bye');
+  if(bye && bye.confidence > minConfidence) {
+    sendResponse(senderId, getIntentResponse('bye'));
+    return;
+  }
+  sendResponse(senderId, getIntentResponse('default'));
 }
 
 function sendGreetingsResponse(senderId) {
@@ -71,7 +82,7 @@ function sendGreetingsResponse(senderId) {
 
 function sendResponse(senderId, messageText) {
 	let messageData = {text: messageText}
-  const req = {
+  const options = {
 		url: 'https://graph.facebook.com/v2.6/me/messages',
 		qs : {access_token: access_token},
 		method: 'POST',
@@ -80,7 +91,7 @@ function sendResponse(senderId, messageText) {
 			message : messageData,
 		}
 	};
-	request(req, (err, res, body) => {
+	request(options, (err, res, body) => {
 		if (err) {
 			console.log('sending error: ' + err.message)
 		} else if (res.body.error) {
