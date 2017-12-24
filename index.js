@@ -5,6 +5,7 @@ const request = require('request');
 const app = express();
 
 const {access_token, verify_token} = require('./access');
+const {responses} = require('./messages.json');
 
 const PORT = process.env.PORT || 8080;
 
@@ -37,6 +38,13 @@ app.post('/webhook/', (req, res) => {
   }
 })
 
+function getIntentResponse(intent) {
+  const body = responses[intent];
+  const messages = body.messages;
+  const randInt = Math.floor(Math.random() * messages.length);
+  return messages[randInt];
+}
+
 function firstEntity(nlp, name) {
   return nlp && nlp.entities && nlp.entities[name] && nlp.entities[name][0];
 }
@@ -46,18 +54,18 @@ function handleMessage(senderId, message) {
   if (greeting && greeting.confidence > 0.8) {
     sendGreetingsResponse(senderId);
   } else {
-    sendResponse(senderId, 'Sorry, I didn\'t get that.');
+    sendResponse(senderId, getIntentResponse('default'));
   }
 }
 
 function sendGreetingsResponse(senderId) {
-  const url = 'https://graph.facebook.com/v2.6/'+senderId+'?fields=first_name,last_name&access_token='+access_token+'>';
+  const url = `https://graph.facebook.com/v2.6/${senderId}?fields=first_name,last_name&access_token=${access_token}>`;
   request(url, (err, res, body) => {
     const profile = JSON.parse(body);
     const keys = Object.keys(profile);
-    let name = profile[keys[0]].toString() + ' ' + profile[keys[1]].toString();
-    console.log(`Name: ${name}`);
-    sendResponse(senderId, 'Hi ' + name);
+    const name = profile[keys[0]].toString() + ' ' + profile[keys[1]].toString();
+    const reply = getIntentResponse('greetings');
+    sendResponse(senderId, `${reply} ${name}`);
   })
 }
 

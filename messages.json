@@ -1,0 +1,37 @@
+{
+  "responses": {
+    "greetings": {
+      "intent": "greetings",
+      "messages": [
+        "Hey",
+        "Hi",
+        "Good day,",
+        "Howdy"
+      ]
+    },
+    "thanks": {
+      "intent": "thanks",
+      "messages": [
+        "Anything for you.",
+        "Welcome."
+      ]
+    },
+    "bye": {
+      "intent": "bye",
+      "messages": [
+        "Bye-bye.",
+        "Bye.",
+        "Till next time."
+      ]
+    },
+    "default": {
+      "intent": "defalut",
+      "messages": [
+        "Sorry, what was that?",
+        "Sorry, I didn't get that.",
+        "I missed that.",
+        "I don't know what you are saying."
+      ]
+    }
+  }
+}
